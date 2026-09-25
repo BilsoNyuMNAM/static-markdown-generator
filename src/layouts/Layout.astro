@@ -1,0 +1,45 @@
+---
+import Header from '../components/Header.astro';
+import '../styles/geist.css';
+
+interface Props {
+  title?: string;
+  description?: string;
+  activeTab?: 'notes' | 'project';
+}
+
+const {
+  title = "Bilson's Blog",
+  description = "A collection of notes and guides on building common features.",
+  activeTab = 'notes',
+} = Astro.props;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- Inline script to prevent theme flash -->
+    <script is:inline>
+      const savedTheme = localStorage.getItem('theme') || 'dark';
+      document.documentElement.setAttribute('data-theme', savedTheme);
+    </script>
+  </head>
+  <body>
+    <Header activeTab={activeTab} />
+    <main>
+      <div class="page-container">
+        <slot />
+      </div>
+    </main>
+    <footer class="site-footer">
+      <div class="container">
+        <span>Bilson's Blog &copy; {new Date().getFullYear()}</span>
+      </div>
+    </footer>
+  </body>
+</html>

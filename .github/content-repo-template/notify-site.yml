@@ -1,0 +1,35 @@
+# ─────────────────────────────────────────────────────────────────────────────
+# notify-site.yml  (put this file in your CONTENT REPO)
+#
+# Every time you push to main in your content repo, this workflow sends a
+# "repository_dispatch" event to the SITE GENERATOR REPO, triggering a rebuild.
+#
+# Setup:
+#   1. Create a GitHub Personal Access Token (PAT) with `repo` scope
+#      (or a fine-grained token with "workflows: read/write" on the SITE repo)
+#   2. Add it as a secret named SITE_REPO_TOKEN in this content repo:
+#      Settings → Secrets → Actions → New repository secret
+# ─────────────────────────────────────────────────────────────────────────────
+name: Notify Site to Rebuild
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    name: Trigger site rebuild
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send repository dispatch to site generator repo
+        uses: peter-evans/repository-dispatch@v3
+        with:
+          token: ${{ secrets.SITE_REPO_TOKEN }}
+          # Change this to your site generator repo: owner/repo-name
+          repository: your-github-username/how-to-documentation
+          event-type: content-updated
+          # Optional: pass metadata about what changed
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'

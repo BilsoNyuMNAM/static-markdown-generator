@@ -1,0 +1,41 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const allDocs = await getCollection('docs');
+
+// Build tag → count map
+const tagCount = new Map<string, { label: string; count: number }>();
+for (const doc of allDocs) {
+  for (const tag of doc.data.tags ?? []) {
+    const slug = tag.toLowerCase();
+    const existing = tagCount.get(slug);
+    if (existing) {
+      existing.count += 1;
+    } else {
+      tagCount.set(slug, { label: tag, count: 1 });
+    }
+  }
+}
+
+// Sort tags alphabetically
+const tags = Array.from(tagCount.entries()).sort(([a], [b]) => a.localeCompare(b));
+---
+
+<Layout title="Tags — Bilson's Blog" activeTab="notes">
+  <div class="tags-index">
+    <div class="tags-index-header">
+      <h1 class="tags-index-title">Tags</h1>
+      <p class="tags-index-sub">Browse notes by topic</p>
+    </div>
+
+    <div class="tags-grid">
+      {tags.map(([slug, { label, count }]) => (
+        <a href={`/tags/${slug}`} class="tag-card">
+          <span class="tag-card-name">{label}</span>
+          <span class="tag-card-count">{count} {count === 1 ? 'note' : 'notes'}</span>
+        </a>
+      ))}
+    </div>
+  </div>
+</Layout>

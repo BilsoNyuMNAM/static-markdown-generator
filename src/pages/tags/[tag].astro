@@ -1,0 +1,80 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+export async function getStaticPaths() {
+  const allDocs = await getCollection('docs');
+
+  const tagMap = new Map<string, string>();
+  for (const doc of allDocs) {
+    for (const tag of doc.data.tags ?? []) {
+      tagMap.set(tag.toLowerCase(), tag);
+    }
+  }
+
+  return Array.from(tagMap.entries()).map(([slug, label]) => ({
+    params: { tag: slug },
+    props: {
+      label,
+      notes: allDocs
+        .filter((doc) =>
+          (doc.data.tags ?? []).some((t: string) => t.toLowerCase() === slug)
+        )
+        .sort((a, b) =>
+          (b.data.year || '2026').toString().localeCompare(
+            (a.data.year || '2026').toString()
+          )
+        ),
+    },
+  }));
+}
+
+const { tag } = Astro.params;
+const { label, notes } = Astro.props;
+---
+
+<Layout title={`${label} — Bilson's Blog`} activeTab="notes">
+  <div class="tag-page">
+
+    <a href="/tags" class="back-link">
+      <span>&larr;</span> All Tags
+    </a>
+
+    <div class="tag-page-header">
+      <span class="tag-pill tag-pill--lg">{label}</span>
+      <span class="tag-count">{notes.length} {notes.length === 1 ? 'note' : 'notes'}</span>
+    </div>
+
+    <div class="notes-list">
+      {notes.map((note) => {
+        const rawType = (note.data.type || 'Notes').trim();
+        const typeLabel = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+        const yearLabel = note.data.year || '2026';
+        const desc = note.data.description || '';
+
+        return (
+          <a href={`/notes/${note.id}`} class="note-item">
+            <div class="note-header-row">
+              <h2 class="note-title">{note.data.title}</h2>
+              <span class="note-meta">{typeLabel} &middot; {yearLabel}</span>
+            </div>
+            {desc && <p class="note-description">{desc}</p>}
+            {note.data.tags && note.data.tags.length > 0 && (
+              <div class="tag-list">
+                {note.data.tags.map((t: string) => (
+                  <a
+                    href={`/tags/${t.toLowerCase()}`}
+                    class:list={['tag-pill', { 'tag-pill--active': t.toLowerCase() === tag }]}
+                    onclick="event.stopPropagation()"
+                  >
+                    {t}
+                  </a>
+                ))}
+              </div>
+            )}
+          </a>
+        );
+      })}
+    </div>
+  </div>
+</Layout>

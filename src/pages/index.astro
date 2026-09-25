@@ -1,0 +1,85 @@
+---
+import Layout from '../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+
+const allDocs = await getCollection('docs');
+
+// 1. Group notes by series
+const seriesMap = new Map();
+for (const doc of allDocs) {
+  if (doc.data.series) {
+    const list = seriesMap.get(doc.data.series) || [];
+    list.push(doc);
+    seriesMap.set(doc.data.series, list);
+  }
+}
+
+// 2. Sort items within each series by order (1, 2, 3...)
+for (const [name, list] of seriesMap.entries()) {
+  list.sort((a, b) => (a.data.order ?? 1) - (b.data.order ?? 1));
+}
+
+// 3. Filter homepage notes:
+// Only show the FIRST part of a series on the homepage!
+const homepageNotes = allDocs.filter((doc) => {
+  if (!doc.data.series) return true;
+  const seriesList = seriesMap.get(doc.data.series);
+  return seriesList && seriesList[0].id === doc.id;
+});
+
+// 4. Sort homepage notes by year/date
+const notes = homepageNotes.sort((a, b) =>
+  (b.data.year || '2026').toString().localeCompare((a.data.year || '2026').toString())
+);
+---
+
+<Layout title="Bilson's Blog — Notes" activeTab="notes">
+  <div class="notes-list">
+      {notes.length === 0 ? (
+        <div class="empty-state">
+          <p>No notes found yet. Add a .md file inside <code>src/content/docs/</code></p>
+        </div>
+      ) : (
+        notes.map((note) => {
+          const rawType = (note.data.type || 'Notes').trim();
+          const typeLabel = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+          const yearLabel = note.data.year || '2026';
+          const desc = note.data.description || (note.data as any).descryption || '';
+
+          const seriesName = note.data.series;
+          const seriesList = seriesName ? seriesMap.get(seriesName) : null;
+          const seriesCount = seriesList ? seriesList.length : 0;
+
+          return (
+            <a href={`/notes/${note.id}`} class="note-item">
+              <div class="note-header-row">
+                <h2 class="note-title">{note.data.title}</h2>
+                <span class="note-meta">{typeLabel} &middot; {yearLabel}</span>
+              </div>
+              {desc && (
+                <p class="note-description">{desc}</p>
+              )}
+              {note.data.tags && note.data.tags.length > 0 && (
+                <div class="tag-list">
+                  {note.data.tags.map((tag: string) => (
+                    <a
+                      href={`/tags/${tag.toLowerCase()}`}
+                      class="tag-pill"
+                      onclick="event.stopPropagation()"
+                    >
+                      {tag}
+                    </a>
+                  ))}
+                </div>
+              )}
+              {seriesName && seriesCount > 1 && (
+                <span class="series-badge">
+                  Series: {seriesName} &middot; Part 1 of {seriesCount} &rarr;
+                </span>
+              )}
+            </a>
+          );
+        })
+      )}
+    </div>
+</Layout>
