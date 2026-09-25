@@ -1,3 +1,0 @@
-# This file keeps the docs/ directory tracked by git.
-# During CI, this directory is populated by cloning the content repo.
-# During local development, place your feature folders here directly.
