@@ -1,0 +1,105 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection, render } from 'astro:content';
+
+export async function getStaticPaths() {
+  const notes = await getCollection('docs');
+  return notes.map((note) => ({
+    params: { slug: note.id },
+    props: { note, allNotes: notes },
+  }));
+}
+
+const { note, allNotes } = Astro.props;
+const { Content } = await render(note);
+
+// Series calculations
+const seriesName = note.data.series;
+let prevNote: any = null;
+let nextNote: any = null;
+let seriesIndex = 1;
+let totalInSeries = 1;
+
+if (seriesName) {
+  const seriesList = allNotes
+    .filter((n) => n.data.series === seriesName)
+    .sort((a, b) => (a.data.order ?? 1) - (b.data.order ?? 1));
+
+  totalInSeries = seriesList.length;
+  const currentIndex = seriesList.findIndex((n) => n.id === note.id);
+  seriesIndex = currentIndex + 1;
+
+  if (currentIndex > 0) {
+    prevNote = seriesList[currentIndex - 1];
+  }
+  if (currentIndex < seriesList.length - 1) {
+    nextNote = seriesList[currentIndex + 1];
+  }
+}
+
+const rawType = (note.data.type || 'Notes').trim();
+const typeLabel = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
+const yearLabel = note.data.year || '2026';
+---
+
+<Layout
+  title={`${note.data.title} — Bilson's Blog`}
+  description={note.data.description}
+  activeTab="notes"
+>
+  <div class="article-container">
+    <a href="/" class="back-link">
+      <span>&larr;</span> All Notes
+    </a>
+
+    <header class="article-header">
+      {seriesName && totalInSeries > 1 && (
+        <div class="series-tracker">
+          <span>Part {seriesIndex} of {totalInSeries} in <strong>{seriesName}</strong></span>
+        </div>
+      )}
+      <div class="article-meta">
+        <span>{typeLabel}</span>
+        <span>&middot;</span>
+        <span>{yearLabel}</span>
+      </div>
+      <h1 class="article-title">{note.data.title}</h1>
+      {note.data.description && (
+        <p class="article-description">{note.data.description}</p>
+      )}
+      {note.data.tags && note.data.tags.length > 0 && (
+        <div class="tag-list">
+          {note.data.tags.map((tag: string) => (
+            <a href={`/tags/${tag.toLowerCase()}`} class="tag-pill">
+              {tag}
+            </a>
+          ))}
+        </div>
+      )}
+    </header>
+
+    <article class="prose">
+      <Content />
+    </article>
+
+    {seriesName && totalInSeries > 1 && (
+      <nav class="series-nav" aria-label="Series navigation">
+        {prevNote ? (
+          <a href={`/notes/${prevNote.id}`} class="series-nav-link prev">
+            <span>&larr;</span> {prevNote.data.title}
+          </a>
+        ) : (
+          <span />
+        )}
+
+        {nextNote ? (
+          <a href={`/notes/${nextNote.id}`} class="series-nav-link next">
+            {nextNote.data.title} <span>&rarr;</span>
+          </a>
+        ) : (
+          <span />
+        )}
+      </nav>
+    )}
+  </div>
+</Layout>
