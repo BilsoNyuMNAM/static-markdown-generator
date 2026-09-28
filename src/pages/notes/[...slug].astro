@@ -1,5 +1,6 @@
 ---
 import Layout from '../../layouts/Layout.astro';
+import TableOfContents from '../../components/TableOfContents.astro';
 import { getCollection, render } from 'astro:content';
 
 export async function getStaticPaths() {
@@ -11,7 +12,7 @@ export async function getStaticPaths() {
 }
 
 const { note, allNotes } = Astro.props;
-const { Content } = await render(note);
+const { Content, headings } = await render(note);
 
 // Series calculations
 const seriesName = note.data.series;
@@ -77,6 +78,8 @@ const yearLabel = note.data.year || '2026';
         </div>
       )}
     </header>
+
+    <TableOfContents headings={headings} />
 
     <article class="prose">
       <Content />

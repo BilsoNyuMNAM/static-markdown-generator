@@ -1,0 +1,191 @@
+---
+import TableOfContentsItem, { type TocItem } from './TableOfContentsItem.astro';
+
+export interface MarkdownHeading {
+  depth: number;
+  slug: string;
+  text: string;
+}
+
+interface Props {
+  headings?: MarkdownHeading[];
+}
+
+const { headings = [] } = Astro.props;
+
+function buildTocTree(rawHeadings: MarkdownHeading[]): { tree: TocItem[]; count: number } {
+  if (!rawHeadings || rawHeadings.length === 0) return { tree: [], count: 0 };
+
+  const h1Count = rawHeadings.filter((h) => h.depth === 1).length;
+  const filtered = rawHeadings.filter((h, i) => {
+    // If only one H1 exists and it's the very first heading, skip it as it's the doc title
+    if (h.depth === 1 && h1Count === 1 && rawHeadings.length > 1 && i === 0) {
+      return false;
+    }
+    // Limit TOC to depths 1 to 4
+    return h.depth >= 1 && h.depth <= 4;
+  });
+
+  if (filtered.length === 0) return { tree: [], count: 0 };
+
+  const root: TocItem[] = [];
+  const stack: TocItem[] = [];
+
+  for (const h of filtered) {
+    const item: TocItem = {
+      depth: h.depth,
+      slug: h.slug,
+      text: h.text,
+      children: [],
+    };
+
+    while (stack.length > 0 && stack[stack.length - 1].depth >= h.depth) {
+      stack.pop();
+    }
+
+    if (stack.length === 0) {
+      root.push(item);
+    } else {
+      stack[stack.length - 1].children.push(item);
+    }
+
+    stack.push(item);
+  }
+
+  return { tree: root, count: filtered.length };
+}
+
+const { tree: tocTree, count: totalHeadings } = buildTocTree(headings);
+const hasNestedItems = tocTree.some((item) => item.children && item.children.length > 0);
+---
+
+{totalHeadings >= 2 && (
+  <nav class="toc-container" aria-label="Table of contents">
+    <div class="toc-header">
+      <span class="toc-title">Table of contents</span>
+      {hasNestedItems && (
+        <button
+          type="button"
+          class="toc-toggle-all-btn"
+          id="toc-toggle-all"
+          aria-label="Collapse all sections"
+        >
+          Collapse all
+        </button>
+      )}
+    </div>
+
+    <ul class="toc-list">
+      {tocTree.map((item) => (
+        <TableOfContentsItem item={item} />
+      ))}
+    </ul>
+  </nav>
+)}
+
+<script>
+  function initToc() {
+    const container = document.querySelector('.toc-container');
+    if (!container) return;
+
+    // Toggle individual items
+    const toggleBtns = container.querySelectorAll<HTMLButtonElement>('.toc-toggle-btn');
+    toggleBtns.forEach((btn) => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const item = btn.closest('.toc-item');
+        if (!item) return;
+
+        const isCollapsed = item.classList.toggle('is-collapsed');
+        btn.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+
+        updateToggleAllButton();
+      });
+    });
+
+    // Toggle all button
+    const toggleAllBtn = container.querySelector<HTMLButtonElement>('#toc-toggle-all');
+    function updateToggleAllButton() {
+      if (!toggleAllBtn || !container) return;
+      const allParentItems = container.querySelectorAll('.toc-item.has-children');
+      const collapsedCount = container.querySelectorAll('.toc-item.has-children.is-collapsed').length;
+
+      if (allParentItems.length > 0 && collapsedCount === allParentItems.length) {
+        toggleAllBtn.textContent = 'Expand all';
+        toggleAllBtn.setAttribute('aria-label', 'Expand all sections');
+      } else {
+        toggleAllBtn.textContent = 'Collapse all';
+        toggleAllBtn.setAttribute('aria-label', 'Collapse all sections');
+      }
+    }
+
+    if (toggleAllBtn) {
+      toggleAllBtn.addEventListener('click', () => {
+        const allParentItems = container.querySelectorAll<HTMLElement>('.toc-item.has-children');
+        const collapsedCount = container.querySelectorAll('.toc-item.has-children.is-collapsed').length;
+        const shouldCollapse = collapsedCount < allParentItems.length;
+
+        allParentItems.forEach((item) => {
+          const btn = item.querySelector<HTMLButtonElement>(':scope > .toc-row .toc-toggle-btn');
+          if (shouldCollapse) {
+            item.classList.add('is-collapsed');
+            btn?.setAttribute('aria-expanded', 'false');
+          } else {
+            item.classList.remove('is-collapsed');
+            btn?.setAttribute('aria-expanded', 'true');
+          }
+        });
+
+        updateToggleAllButton();
+      });
+    }
+
+    // Scrollspy: active heading highlight on scroll
+    const tocLinks = container.querySelectorAll<HTMLAnchorElement>('.toc-link');
+    const headings: HTMLElement[] = [];
+
+    tocLinks.forEach((link) => {
+      const href = link.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        const target = document.getElementById(href.slice(1));
+        if (target) headings.push(target);
+      }
+    });
+
+    if (headings.length > 0 && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) {
+              const id = entry.target.id;
+              updateActiveLink(id);
+            }
+          });
+        },
+        { rootMargin: '0px 0px -70% 0px' }
+      );
+
+      headings.forEach((heading) => observer.observe(heading));
+
+      function updateActiveLink(id: string) {
+        tocLinks.forEach((link) => {
+          if (link.getAttribute('href') === `#${id}`) {
+            link.classList.add('is-active');
+            let parent = link.closest('.toc-item.has-children.is-collapsed');
+            while (parent) {
+              parent.classList.remove('is-collapsed');
+              const btn = parent.querySelector<HTMLButtonElement>(':scope > .toc-row .toc-toggle-btn');
+              btn?.setAttribute('aria-expanded', 'true');
+              parent = parent.parentElement?.closest('.toc-item.has-children.is-collapsed') || null;
+            }
+          } else {
+            link.classList.remove('is-active');
+          }
+        });
+      }
+    }
+  }
+
+  initToc();
+  document.addEventListener('astro:after-swap', initToc);
+</script>

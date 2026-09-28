@@ -1,0 +1,56 @@
+---
+export interface TocItem {
+  depth: number;
+  slug: string;
+  text: string;
+  children: TocItem[];
+}
+
+interface Props {
+  item: TocItem;
+}
+
+const { item } = Astro.props;
+const hasChildren = Boolean(item.children && item.children.length > 0);
+---
+
+<li class:list={['toc-item', { 'has-children': hasChildren }]}>
+  <div class="toc-row">
+    {hasChildren ? (
+      <button
+        type="button"
+        class="toc-toggle-btn"
+        aria-label={`Toggle subsection: ${item.text}`}
+        aria-expanded="true"
+      >
+        <svg
+          class="toc-chevron"
+          width="13"
+          height="13"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2.2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          aria-hidden="true"
+        >
+          <polyline points="9 18 15 12 9 6" />
+        </svg>
+      </button>
+    ) : (
+      <span class="toc-spacer" aria-hidden="true" />
+    )}
+    <a href={`#${item.slug}`} class="toc-link">
+      {item.text}
+    </a>
+  </div>
+
+  {hasChildren && (
+    <ul class="toc-children">
+      {item.children.map((child) => (
+        <Astro.self item={child} />
+      ))}
+    </ul>
+  )}
+</li>

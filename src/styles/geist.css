@@ -52,6 +52,7 @@
 html {
   /* Fluid base scaling: 15.5px on mobile up to 17px on desktop */
   font-size: clamp(15.5px, 0.4vw + 14.5px, 17px);
+  scroll-behavior: smooth;
 }
 
 body {
@@ -441,6 +442,7 @@ a {
   margin-top: 1.4rem;
   margin-bottom: 0.4rem;
   font-weight: 700;
+  scroll-margin-top: 24px;
 }
 
 /* First heading needs no top gap */
@@ -554,6 +556,147 @@ a {
 
 .prose tbody tr:hover {
   background-color: var(--canvas-hover);
+}
+
+/* ==========================================================================
+   Minimalist Tree Table of Contents (TOC)
+   ========================================================================== */
+.toc-container {
+  margin-top: clamp(20px, 3vw, 28px);
+  margin-bottom: clamp(28px, 4vw, 36px);
+  padding-bottom: clamp(20px, 3vw, 28px);
+  border-bottom: 1px solid var(--hairline);
+}
+
+.toc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.toc-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--mute);
+}
+
+.toc-toggle-all-btn {
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--mute);
+  background: none;
+  border: none;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.toc-toggle-all-btn:hover {
+  color: var(--ink);
+  background-color: var(--canvas-hover);
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.toc-item {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 2px 0;
+}
+
+.toc-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--mute);
+  cursor: pointer;
+  border-radius: 3px;
+  margin-top: 3px;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.toc-toggle-btn:hover {
+  color: var(--ink);
+  background-color: var(--canvas-hover);
+}
+
+.toc-chevron {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  transition: transform 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  transform: rotate(90deg); /* down chevron when expanded */
+}
+
+.toc-spacer {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.toc-link {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--body);
+  text-decoration: none;
+  transition: color 0.15s ease;
+  word-break: break-word;
+}
+
+.toc-link:hover {
+  color: var(--ink);
+}
+
+.toc-link.is-active {
+  color: var(--link);
+  font-weight: 500;
+}
+
+/* Nested children with vertical tree guide */
+.toc-children {
+  list-style: none;
+  margin: 3px 0 3px 8.5px;
+  padding-left: 14px;
+  border-left: 1px solid var(--hairline);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+/* Collapsed state */
+.toc-item.is-collapsed > .toc-row .toc-chevron {
+  transform: rotate(0deg); /* points right */
+}
+
+.toc-item.is-collapsed > .toc-children {
+  display: none;
 }
 
 /* Series Bottom Navigation (Minimal text links) */
