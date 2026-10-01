@@ -1,0 +1,655 @@
+---
+import type { NoteItem, Topic } from '../utils/notes';
+
+interface Props {
+  notes: NoteItem[];
+}
+
+const { notes } = Astro.props;
+
+// Group notes by topic for Grouped SSR
+const groupedByTopic: Record<Topic, NoteItem[]> = {
+  dev: notes.filter((n) => n.topic === 'dev'),
+  nutrition: notes.filter((n) => n.topic === 'nutrition'),
+  training: notes.filter((n) => n.topic === 'training'),
+};
+
+// Group notes by month & year for Timeline SSR
+const timelineGroups: { monthYear: string; items: NoteItem[] }[] = [];
+const monthMap = new Map<string, NoteItem[]>();
+for (const note of notes) {
+  const list = monthMap.get(note.monthYear) || [];
+  list.push(note);
+  monthMap.set(note.monthYear, list);
+}
+for (const [monthYear, items] of monthMap.entries()) {
+  timelineGroups.push({ monthYear, items });
+}
+
+// Serialize data for client controller
+const serializedNotes = JSON.stringify(notes);
+---
+
+<div class="notes-explorer" id="notes-explorer">
+  <!-- Top Bar: Search + Notion-style View Switcher -->
+  <div class="explorer-top-bar">
+    <div class="search-input-wrapper">
+      <svg
+        class="search-icon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="search"
+        id="notes-search-input"
+        class="search-input"
+        placeholder="Search notes... (press / to focus)"
+        aria-label="Search notes"
+        autocomplete="off"
+        spellcheck="false"
+      />
+      <span class="search-kbd" id="search-kbd" aria-hidden="true">/</span>
+      <button
+        type="button"
+        id="search-clear-btn"
+        class="search-clear-btn"
+        aria-label="Clear search"
+        hidden
+      >&times;</button>
+    </div>
+
+    <!-- Notion-style View Switcher -->
+    <div class="view-switcher">
+      <span class="view-switcher-label">View:</span>
+      <div class="view-btn-group" role="group" aria-label="Choose layout view">
+        <button
+          type="button"
+          class="view-btn active"
+          data-view="list"
+          aria-pressed="true"
+          title="List View"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="8" y1="6" x2="21" y2="6"></line>
+            <line x1="8" y1="12" x2="21" y2="12"></line>
+            <line x1="8" y1="18" x2="21" y2="18"></line>
+            <line x1="3" y1="6" x2="3.01" y2="6"></line>
+            <line x1="3" y1="12" x2="3.01" y2="12"></line>
+            <line x1="3" y1="18" x2="3.01" y2="18"></line>
+          </svg>
+          <span>List</span>
+        </button>
+        <button
+          type="button"
+          class="view-btn"
+          data-view="cards"
+          aria-pressed="false"
+          title="Cards View"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
+          </svg>
+          <span>Cards</span>
+        </button>
+        <button
+          type="button"
+          class="view-btn"
+          data-view="grouped"
+          aria-pressed="false"
+          title="Grouped View"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+          </svg>
+          <span>Grouped</span>
+        </button>
+        <button
+          type="button"
+          class="view-btn"
+          data-view="timeline"
+          aria-pressed="false"
+          title="Timeline View"
+        >
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="10"></circle>
+            <polyline points="12 6 12 12 16 14"></polyline>
+          </svg>
+          <span>Timeline</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status Bar: Results Count + Clear Search -->
+  <div class="explorer-status-bar">
+    <span class="results-count" id="results-count">Showing {notes.length} {notes.length === 1 ? 'note' : 'notes'}</span>
+    <button
+      type="button"
+      class="clear-filters-btn"
+      id="clear-filters-btn"
+      hidden
+    >
+      Clear search
+    </button>
+  </div>
+
+  <!-- Views Viewport -->
+  <div class="views-viewport" id="views-viewport">
+    <!-- View 1: List (SSR Initial) -->
+    <div class="view-panel view-list" id="view-list" role="region" aria-label="List view">
+      {notes.map((note) => (
+        <a href={note.url} class="note-list-row" data-id={note.id}>
+          <div class="note-list-header">
+            <h2 class="note-list-title">{note.title}</h2>
+            <span class="note-list-date">{note.formattedDate}</span>
+          </div>
+          {note.description && (
+            <p class="note-list-desc">{note.description}</p>
+          )}
+          {note.tags && note.tags.length > 0 && (
+            <div class="tag-list">
+              {note.tags.map((tag) => (
+                <span
+                  class="tag-pill"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+
+    <!-- View 2: Cards -->
+    <div class="view-panel view-cards" id="view-cards" role="region" aria-label="Cards view" style="display:none;">
+      {notes.map((note) => (
+        <a href={note.url} class="note-card" data-id={note.id}>
+          <div class="note-card-top">
+            <span class="note-card-date">{note.formattedDate}</span>
+          </div>
+          <h3 class="note-card-title">{note.title}</h3>
+          {note.description && (
+            <p class="note-card-desc">{note.description}</p>
+          )}
+          {note.tags && note.tags.length > 0 && (
+            <div class="tag-list note-card-footer">
+              {note.tags.map((tag) => (
+                <span
+                  class="tag-pill"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+
+    <!-- View 3: Grouped -->
+    <div class="view-panel view-grouped" id="view-grouped" role="region" aria-label="Grouped view" style="display:none;">
+      {(['dev', 'nutrition', 'training'] as Topic[]).map((topicKey) => {
+        const topicNotes = groupedByTopic[topicKey];
+        if (topicNotes.length === 0) return null;
+        const topicTitle = topicKey === 'dev' ? 'Development' : topicKey.charAt(0).toUpperCase() + topicKey.slice(1);
+        return (
+          <div class="topic-group is-open" data-topic-group={topicKey}>
+            <button
+              type="button"
+              class="topic-group-header"
+              aria-expanded="true"
+            >
+              <div class="topic-group-header-left">
+                <svg class="topic-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+                <span class="topic-group-title">{topicTitle}</span>
+              </div>
+              <span class="topic-group-count">{topicNotes.length} {topicNotes.length === 1 ? 'note' : 'notes'}</span>
+            </button>
+            <div class="topic-group-content">
+              {topicNotes.map((note) => (
+                <a href={note.url} class="note-list-row" data-id={note.id}>
+                  <div class="note-list-header">
+                    <h3 class="note-list-title">{note.title}</h3>
+                    <span class="note-list-date">{note.formattedDate}</span>
+                  </div>
+                  {note.description && (
+                    <p class="note-list-desc">{note.description}</p>
+                  )}
+                  {note.tags && note.tags.length > 0 && (
+                    <div class="tag-list">
+                      {note.tags.map((tag) => (
+                        <span
+                          class="tag-pill"
+                        >
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </a>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+
+    <!-- View 4: Timeline -->
+    <div class="view-panel view-timeline" id="view-timeline" role="region" aria-label="Timeline view" style="display:none;">
+      {timelineGroups.map((group) => (
+        <div class="timeline-month-block" data-month-year={group.monthYear}>
+          <div class="timeline-month-header">
+            <span class="timeline-month-marker" aria-hidden="true"></span>
+            <h4 class="timeline-month-title">{group.monthYear}</h4>
+          </div>
+          <div class="timeline-items">
+            {group.items.map((note) => (
+              <a href={note.url} class="timeline-item" data-id={note.id}>
+                <span class="timeline-node-dot" aria-hidden="true"></span>
+                <span class="timeline-date">{note.shortDate}</span>
+                <h3 class="timeline-title">{note.title}</h3>
+                {note.tags && note.tags.length > 0 && (
+                  <div class="tag-list">
+                    {note.tags.map((tag) => (
+                      <span
+                        class="tag-pill"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </a>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+
+    <!-- Empty State -->
+    <div class="notes-empty-state" id="notes-empty-state" style="display:none;">
+      <div class="empty-state-icon" aria-hidden="true">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          <line x1="8" y1="11" x2="14" y2="11"></line>
+        </svg>
+      </div>
+      <p class="empty-state-text">No notes match your search.</p>
+      <button type="button" class="empty-state-btn" id="empty-clear-filters-btn">Clear search</button>
+    </div>
+  </div>
+</div>
+
+<!-- Embedded Data for Client Controller -->
+<script id="notes-data" type="application/json" set:html={serializedNotes}></script>
+
+<script is:inline>
+  (function () {
+    const rawData = document.getElementById('notes-data');
+    if (!rawData) return;
+    const allNotes = JSON.parse(rawData.textContent || '[]');
+
+    // DOM Elements
+    const pageContainer = document.getElementById('page-container');
+    const searchInput = document.getElementById('notes-search-input');
+    const searchClearBtn = document.getElementById('search-clear-btn');
+    const searchKbd = document.getElementById('search-kbd');
+    const viewButtons = document.querySelectorAll('.view-btn');
+    const resultsCountEl = document.getElementById('results-count');
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    const emptyClearFiltersBtn = document.getElementById('empty-clear-filters-btn');
+    const emptyState = document.getElementById('notes-empty-state');
+
+    const viewPanels = {
+      list: document.getElementById('view-list'),
+      cards: document.getElementById('view-cards'),
+      grouped: document.getElementById('view-grouped'),
+      timeline: document.getElementById('view-timeline'),
+    };
+
+    // State
+    const state = {
+      query: '',
+      view: 'list',
+    };
+
+    // Parse URL on init
+    function parseURL() {
+      const params = new URLSearchParams(window.location.search);
+      const q = params.get('q');
+      const view = params.get('view');
+
+      if (q) state.query = q;
+      if (view && ['list', 'cards', 'grouped', 'timeline'].includes(view)) {
+        state.view = view;
+      } else {
+        const savedView = localStorage.getItem('notes_view_preference');
+        if (savedView && ['list', 'cards', 'grouped', 'timeline'].includes(savedView)) {
+          state.view = savedView;
+        }
+      }
+    }
+
+    // Sync state to URL and localStorage
+    function syncURL() {
+      const params = new URLSearchParams();
+      if (state.query) params.set('q', state.query);
+      if (state.view !== 'list') params.set('view', state.view);
+
+      const qs = params.toString();
+      const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+      window.history.replaceState({}, '', newUrl);
+
+      localStorage.setItem('notes_view_preference', state.view);
+    }
+
+    // Update active UI controls
+    function updateControlsUI() {
+      if (searchInput && searchInput.value !== state.query) {
+        searchInput.value = state.query;
+      }
+      if (searchClearBtn) {
+        searchClearBtn.hidden = !state.query;
+      }
+      if (searchKbd) {
+        searchKbd.style.display = state.query ? 'none' : 'inline-flex';
+      }
+
+      // View buttons
+      viewButtons.forEach((btn) => {
+        const v = btn.getAttribute('data-view');
+        const isActive = v === state.view;
+        btn.classList.toggle('active', isActive);
+        btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+      });
+
+      // Page container wide mode for cards view
+      if (pageContainer) {
+        pageContainer.classList.toggle('view-cards-active', state.view === 'cards');
+      }
+
+      // Clear search button
+      if (clearFiltersBtn) {
+        clearFiltersBtn.hidden = !state.query;
+      }
+    }
+
+    // Filter notes
+    function getFilteredNotes() {
+      const q = state.query.trim().toLowerCase();
+      if (!q) return allNotes;
+
+      const terms = q.split(/\s+/).filter(Boolean);
+      return allNotes.filter((note) => {
+        const haystack = `${note.title} ${note.rawTitle} ${note.description} ${note.tags.join(' ')}`.toLowerCase();
+        for (const term of terms) {
+          if (!haystack.includes(term)) return false;
+        }
+        return true;
+      });
+    }
+
+    function renderTagsHTML(tags) {
+      if (!tags || tags.length === 0) return '';
+      return `
+        <div class="tag-list">
+          ${tags
+            .map((t) => `<span class="tag-pill">${t}</span>`)
+            .join('')}
+        </div>
+      `;
+    }
+
+    // Render HTML for views
+    function renderViews(filtered) {
+      const count = filtered.length;
+
+      if (resultsCountEl) {
+        resultsCountEl.textContent = `Showing ${count} ${count === 1 ? 'note' : 'notes'}`;
+      }
+
+      if (count === 0) {
+        Object.values(viewPanels).forEach((p) => {
+          if (p) p.style.display = 'none';
+        });
+        if (emptyState) emptyState.style.display = 'block';
+        return;
+      }
+
+      if (emptyState) emptyState.style.display = 'none';
+
+      // Show only active view panel
+      Object.entries(viewPanels).forEach(([name, panel]) => {
+        if (!panel) return;
+        if (name === state.view) {
+          panel.style.display = name === 'cards' ? 'grid' : 'flex';
+        } else {
+          panel.style.display = 'none';
+        }
+      });
+
+      // 1. List View
+      if (viewPanels.list && state.view === 'list') {
+        viewPanels.list.innerHTML = filtered
+          .map(
+            (note) => `
+            <a href="${note.url}" class="note-list-row" data-id="${note.id}">
+              <div class="note-list-header">
+                <h2 class="note-list-title">${note.title}</h2>
+                <span class="note-list-date">${note.formattedDate}</span>
+              </div>
+              ${note.description ? `<p class="note-list-desc">${note.description}</p>` : ''}
+              ${renderTagsHTML(note.tags)}
+            </a>
+          `
+          )
+          .join('');
+      }
+
+      // 2. Cards View
+      if (viewPanels.cards && state.view === 'cards') {
+        viewPanels.cards.innerHTML = filtered
+          .map(
+            (note) => `
+            <a href="${note.url}" class="note-card" data-id="${note.id}">
+              <div class="note-card-top">
+                <span class="note-card-date">${note.formattedDate}</span>
+              </div>
+              <h3 class="note-card-title">${note.title}</h3>
+              ${note.description ? `<p class="note-card-desc">${note.description}</p>` : ''}
+              <div class="note-card-footer">
+                ${renderTagsHTML(note.tags)}
+              </div>
+            </a>
+          `
+          )
+          .join('');
+      }
+
+      // 3. Grouped View
+      if (viewPanels.grouped && state.view === 'grouped') {
+        const topics = ['dev', 'nutrition', 'training'];
+        viewPanels.grouped.innerHTML = topics
+          .map((topicKey) => {
+            const groupNotes = filtered.filter((n) => n.topic === topicKey);
+            if (groupNotes.length === 0) return '';
+            const topicTitle = topicKey === 'dev' ? 'Development' : topicKey.charAt(0).toUpperCase() + topicKey.slice(1);
+
+            return `
+              <div class="topic-group is-open" data-topic-group="${topicKey}">
+                <button type="button" class="topic-group-header" aria-expanded="true">
+                  <div class="topic-group-header-left">
+                    <svg class="topic-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                    <span class="topic-group-title">${topicTitle}</span>
+                  </div>
+                  <span class="topic-group-count">${groupNotes.length} ${groupNotes.length === 1 ? 'note' : 'notes'}</span>
+                </button>
+                <div class="topic-group-content">
+                  ${groupNotes
+                    .map(
+                      (note) => `
+                    <a href="${note.url}" class="note-list-row" data-id="${note.id}">
+                      <div class="note-list-header">
+                        <h3 class="note-list-title">${note.title}</h3>
+                        <span class="note-list-date">${note.formattedDate}</span>
+                      </div>
+                      ${note.description ? `<p class="note-list-desc">${note.description}</p>` : ''}
+                      ${renderTagsHTML(note.tags)}
+                    </a>
+                  `
+                    )
+                    .join('')}
+                </div>
+              </div>
+            `;
+          })
+          .join('');
+
+        viewPanels.grouped.querySelectorAll('.topic-group-header').forEach((hdr) => {
+          hdr.addEventListener('click', () => {
+            const group = hdr.closest('.topic-group');
+            if (group) {
+              const isOpen = group.classList.toggle('is-open');
+              hdr.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+            }
+          });
+        });
+      }
+
+      // 4. Timeline View
+      if (viewPanels.timeline && state.view === 'timeline') {
+        const monthGroups = new Map();
+        filtered.forEach((note) => {
+          const list = monthGroups.get(note.monthYear) || [];
+          list.push(note);
+          monthGroups.set(note.monthYear, list);
+        });
+
+        viewPanels.timeline.innerHTML = Array.from(monthGroups.entries())
+          .map(
+            ([monthYear, items]) => `
+            <div class="timeline-month-block" data-month-year="${monthYear}">
+              <div class="timeline-month-header">
+                <span class="timeline-month-marker" aria-hidden="true"></span>
+                <h4 class="timeline-month-title">${monthYear}</h4>
+              </div>
+              <div class="timeline-items">
+                ${items
+                  .map(
+                    (note) => `
+                  <a href="${note.url}" class="timeline-item" data-id="${note.id}">
+                    <span class="timeline-node-dot" aria-hidden="true"></span>
+                    <span class="timeline-date">${note.shortDate}</span>
+                    <h3 class="timeline-title">${note.title}</h3>
+                    ${renderTagsHTML(note.tags)}
+                  </a>
+                `
+                  )
+                  .join('')}
+              </div>
+            </div>
+          `
+          )
+          .join('');
+      }
+    }
+
+    // Master render
+    function render() {
+      updateControlsUI();
+      const filtered = getFilteredNotes();
+      renderViews(filtered);
+      syncURL();
+    }
+
+    function resetSearch() {
+      state.query = '';
+      if (searchInput) searchInput.value = '';
+      render();
+      if (searchInput) searchInput.focus();
+    }
+
+    // Event Listeners
+    let searchDebounce;
+    searchInput?.addEventListener('input', (e) => {
+      clearTimeout(searchDebounce);
+      searchDebounce = setTimeout(() => {
+        state.query = e.target.value;
+        render();
+      }, 50);
+    });
+
+    searchClearBtn?.addEventListener('click', resetSearch);
+    clearFiltersBtn?.addEventListener('click', resetSearch);
+    emptyClearFiltersBtn?.addEventListener('click', resetSearch);
+
+    // View switcher
+    viewButtons.forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const v = btn.getAttribute('data-view');
+        if (v && v !== state.view) {
+          state.view = v;
+          render();
+        }
+      });
+    });
+
+    // Grouped collapsible headers initial bind
+    document.querySelectorAll('.topic-group-header').forEach((hdr) => {
+      hdr.addEventListener('click', () => {
+        const group = hdr.closest('.topic-group');
+        if (group) {
+          const isOpen = group.classList.toggle('is-open');
+          hdr.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        }
+      });
+    });
+
+    // Global Keyboard shortcut: '/' focuses search
+    window.addEventListener('keydown', (e) => {
+      const tag = document.activeElement ? document.activeElement.tagName.toUpperCase() : '';
+      const isInput = tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+
+      if (e.key === '/' && !isInput && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        searchInput?.focus();
+        searchInput?.select();
+      }
+
+      if (e.key === 'Escape' && document.activeElement === searchInput) {
+        if (searchInput.value) {
+          resetSearch();
+        } else {
+          searchInput.blur();
+        }
+      }
+    });
+
+    // Browser Back / Forward
+    window.addEventListener('popstate', () => {
+      parseURL();
+      render();
+    });
+
+    // Initialize
+    parseURL();
+    render();
+  })();
+</script>

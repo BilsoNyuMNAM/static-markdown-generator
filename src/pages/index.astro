@@ -1,85 +1,44 @@
 ---
 import Layout from '../layouts/Layout.astro';
+import NotesExplorer from '../components/NotesExplorer.astro';
 import { getCollection } from 'astro:content';
+import { cleanTitle, resolveTopic, resolveDate, type NoteItem } from '../utils/notes';
 
 const allDocs = await getCollection('docs');
 
-// 1. Group notes by series
-const seriesMap = new Map();
-for (const doc of allDocs) {
-  if (doc.data.series) {
-    const list = seriesMap.get(doc.data.series) || [];
-    list.push(doc);
-    seriesMap.set(doc.data.series, list);
-  }
-}
+const notes: NoteItem[] = allDocs.map((doc) => {
+  const rawTitle = doc.data.title || 'Untitled Note';
+  const title = cleanTitle(rawTitle);
+  const rawDesc = doc.data.description || (doc.data as any).descryption || '';
+  const description = typeof rawDesc === 'string' ? rawDesc.trim() : '';
+  const topic = resolveTopic(doc.data.topic, doc.id, doc.data.tags || []);
 
-// 2. Sort items within each series by order (1, 2, 3...)
-for (const [name, list] of seriesMap.entries()) {
-  list.sort((a, b) => (a.data.order ?? 1) - (b.data.order ?? 1));
-}
+  const relativePath = doc.filePath ? doc.filePath.replace(/^src\/content\/docs\//, '') : `${doc.id}.md`;
+  const dateInfo = resolveDate(doc.data.date, doc.data.year, relativePath);
 
-// 3. Filter homepage notes:
-// Only show the FIRST part of a series on the homepage!
-const homepageNotes = allDocs.filter((doc) => {
-  if (!doc.data.series) return true;
-  const seriesList = seriesMap.get(doc.data.series);
-  return seriesList && seriesList[0].id === doc.id;
+  return {
+    id: doc.id,
+    slug: doc.id,
+    url: `/notes/${doc.id}`,
+    rawTitle,
+    title,
+    description,
+    topic,
+    tags: (doc.data.tags || []).map((t: string) => t.toLowerCase().trim()),
+    date: dateInfo.dateStr,
+    formattedDate: dateInfo.formattedDate,
+    shortDate: dateInfo.shortDate,
+    monthYear: dateInfo.monthYear,
+    timestamp: dateInfo.timestamp,
+    series: doc.data.series,
+    order: doc.data.order,
+  };
 });
 
-// 4. Sort homepage notes by year/date
-const notes = homepageNotes.sort((a, b) =>
-  (b.data.year || '2026').toString().localeCompare((a.data.year || '2026').toString())
-);
+// Default sort: newest first
+notes.sort((a, b) => b.timestamp - a.timestamp);
 ---
 
 <Layout title="Bilson's Blog — Notes" activeTab="notes">
-  <div class="notes-list">
-      {notes.length === 0 ? (
-        <div class="empty-state">
-          <p>No notes found yet. Add a .md file inside <code>src/content/docs/</code></p>
-        </div>
-      ) : (
-        notes.map((note) => {
-          const rawType = (note.data.type || 'Notes').trim();
-          const typeLabel = rawType.charAt(0).toUpperCase() + rawType.slice(1).toLowerCase();
-          const yearLabel = note.data.year || '2026';
-          const desc = note.data.description || (note.data as any).descryption || '';
-
-          const seriesName = note.data.series;
-          const seriesList = seriesName ? seriesMap.get(seriesName) : null;
-          const seriesCount = seriesList ? seriesList.length : 0;
-
-          return (
-            <a href={`/notes/${note.id}`} class="note-item">
-              <div class="note-header-row">
-                <h2 class="note-title">{note.data.title}</h2>
-                <span class="note-meta">{typeLabel} &middot; {yearLabel}</span>
-              </div>
-              {desc && (
-                <p class="note-description">{desc}</p>
-              )}
-              {note.data.tags && note.data.tags.length > 0 && (
-                <div class="tag-list">
-                  {note.data.tags.map((tag: string) => (
-                    <a
-                      href={`/tags/${tag.toLowerCase()}`}
-                      class="tag-pill"
-                      onclick="event.stopPropagation()"
-                    >
-                      {tag}
-                    </a>
-                  ))}
-                </div>
-              )}
-              {seriesName && seriesCount > 1 && (
-                <span class="series-badge">
-                  Series: {seriesName} &middot; Part 1 of {seriesCount} &rarr;
-                </span>
-              )}
-            </a>
-          );
-        })
-      )}
-    </div>
+  <NotesExplorer notes={notes} />
 </Layout>

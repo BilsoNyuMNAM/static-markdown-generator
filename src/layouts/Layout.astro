@@ -6,12 +6,14 @@ interface Props {
   title?: string;
   description?: string;
   activeTab?: 'notes' | 'project';
+  containerClass?: string;
 }
 
 const {
   title = "Bilson's Blog",
   description = "A collection of notes and guides on building common features.",
   activeTab = 'notes',
+  containerClass = '',
 } = Astro.props;
 ---
 
@@ -23,16 +25,21 @@ const {
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <!-- Inline script to prevent theme flash -->
+    <!-- Inline script to prevent theme flash & respect system preference -->
     <script is:inline>
-      const savedTheme = localStorage.getItem('theme') || 'dark';
-      document.documentElement.setAttribute('data-theme', savedTheme);
+      const savedTheme = localStorage.getItem('theme');
+      if (savedTheme) {
+        document.documentElement.setAttribute('data-theme', savedTheme);
+      } else {
+        const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        document.documentElement.setAttribute('data-theme', prefersDark ? 'dark' : 'light');
+      }
     </script>
   </head>
   <body>
     <Header activeTab={activeTab} />
     <main>
-      <div class="page-container">
+      <div class:list={['page-container', containerClass]} id="page-container">
         <slot />
       </div>
     </main>

@@ -15,6 +15,7 @@ export const collections = {
           .default(''),
         date: z.string().or(z.date()).nullable().optional(),
         year: z.string().or(z.number()).nullable().optional().default('2026'),
+        topic: z.enum(['dev', 'nutrition', 'training']).nullable().optional(),
         type: z
           .string()
           .nullable()
