@@ -10,6 +10,7 @@ export interface NoteItem {
   rawTitle: string;
   title: string;
   description: string;
+  body: string; // raw markdown, searched client-side so "did I document X" works
   topic: Topic;
   tags: string[];
   date: string; // YYYY-MM-DD
@@ -19,6 +20,11 @@ export interface NoteItem {
   timestamp: number;
   series?: string | null;
   order?: number;
+}
+
+/** Docs flagged `type: Project` are routed under /project instead of /notes */
+export function isProject(doc: { data: { type?: string | null } }): boolean {
+  return (doc.data.type ?? '').trim().toLowerCase() === 'project';
 }
 
 const MONTH_NAMES = [

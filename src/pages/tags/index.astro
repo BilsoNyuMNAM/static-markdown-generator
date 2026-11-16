@@ -1,8 +1,9 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
+import { isProject } from '../../utils/notes';
 
-const allDocs = await getCollection('docs');
+const allDocs = (await getCollection('docs')).filter((d) => !isProject(d));
 
 // Build tag → count map
 const tagCount = new Map<string, { label: string; count: number }>();
@@ -24,16 +25,20 @@ const tags = Array.from(tagCount.entries()).sort(([a], [b]) => a.localeCompare(b
 
 <Layout title="Tags — Bilson's Blog" activeTab="notes">
   <div class="tags-index">
-    <div class="tags-index-header">
-      <h1 class="tags-index-title">Tags</h1>
-      <p class="tags-index-sub">Browse notes by topic</p>
+    <div class="masthead">
+      <div>
+        <h1 class="masthead-title">Tags</h1>
+        <p class="masthead-sub">Browse notes by topic</p>
+      </div>
+      <span class="masthead-total">{tags.length}&nbsp;topics</span>
     </div>
 
     <div class="tags-grid">
-      {tags.map(([slug, { label, count }]) => (
+      {tags.map(([slug, { label, count }], i) => (
         <a href={`/tags/${slug}`} class="tag-card">
+          <span class="tag-card-index">{String(i + 1).padStart(2, '0')}</span>
           <span class="tag-card-name">{label}</span>
-          <span class="tag-card-count">{count} {count === 1 ? 'note' : 'notes'}</span>
+          <span class="tag-card-count">{count}</span>
         </a>
       ))}
     </div>

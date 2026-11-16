@@ -1,0 +1,31 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import { getCollection } from 'astro:content';
+import { isProject } from '../../utils/notes';
+
+const projects = (await getCollection('docs')).filter((d) => isProject(d));
+projects.sort((a, b) => (b.data.year ?? '2026').toString().localeCompare((a.data.year ?? '2026').toString()));
+---
+
+<Layout title="Bilson's Blog — Projects" activeTab="project">
+  <div class="container">
+    <div class="notes-list">
+      {projects.map((project) => (
+        <a href={`/project/${project.id}`} class="note-item">
+          <div class="note-header-row">
+            <h2 class="note-title">{project.data.title}</h2>
+            <span class="note-meta">Project &middot; {project.data.year ?? '2026'}</span>
+          </div>
+          {project.data.description && (
+            <p class="note-description">{project.data.description}</p>
+          )}
+          {project.id.includes('/') && (
+            <div class="tag-list">
+              <span class="tag-pill">{project.id.split('/')[0]}</span>
+            </div>
+          )}
+        </a>
+      ))}
+    </div>
+  </div>
+</Layout>

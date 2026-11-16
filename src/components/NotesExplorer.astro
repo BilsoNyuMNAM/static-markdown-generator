@@ -1,18 +1,11 @@
 ---
-import type { NoteItem, Topic } from '../utils/notes';
+import type { NoteItem } from '../utils/notes';
 
 interface Props {
   notes: NoteItem[];
 }
 
 const { notes } = Astro.props;
-
-// Group notes by topic for Grouped SSR
-const groupedByTopic: Record<Topic, NoteItem[]> = {
-  dev: notes.filter((n) => n.topic === 'dev'),
-  nutrition: notes.filter((n) => n.topic === 'nutrition'),
-  training: notes.filter((n) => n.topic === 'training'),
-};
 
 // Group notes by month & year for Timeline SSR
 const timelineGroups: { monthYear: string; items: NoteItem[] }[] = [];
@@ -51,7 +44,7 @@ const serializedNotes = JSON.stringify(notes);
         type="search"
         id="notes-search-input"
         class="search-input"
-        placeholder="Search notes... (press / to focus)"
+        placeholder="Search titles, tags and note content... (press / to focus)"
         aria-label="Search notes"
         autocomplete="off"
         spellcheck="false"
@@ -86,33 +79,6 @@ const serializedNotes = JSON.stringify(notes);
             <line x1="3" y1="18" x2="3.01" y2="18"></line>
           </svg>
           <span>List</span>
-        </button>
-        <button
-          type="button"
-          class="view-btn"
-          data-view="cards"
-          aria-pressed="false"
-          title="Cards View"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7"></rect>
-            <rect x="14" y="3" width="7" height="7"></rect>
-            <rect x="14" y="14" width="7" height="7"></rect>
-            <rect x="3" y="14" width="7" height="7"></rect>
-          </svg>
-          <span>Cards</span>
-        </button>
-        <button
-          type="button"
-          class="view-btn"
-          data-view="grouped"
-          aria-pressed="false"
-          title="Grouped View"
-        >
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-          </svg>
-          <span>Grouped</span>
         </button>
         <button
           type="button"
@@ -172,83 +138,7 @@ const serializedNotes = JSON.stringify(notes);
       ))}
     </div>
 
-    <!-- View 2: Cards -->
-    <div class="view-panel view-cards" id="view-cards" role="region" aria-label="Cards view" style="display:none;">
-      {notes.map((note) => (
-        <a href={note.url} class="note-card" data-id={note.id}>
-          <div class="note-card-top">
-            <span class="note-card-date">{note.formattedDate}</span>
-          </div>
-          <h3 class="note-card-title">{note.title}</h3>
-          {note.description && (
-            <p class="note-card-desc">{note.description}</p>
-          )}
-          {note.tags && note.tags.length > 0 && (
-            <div class="tag-list note-card-footer">
-              {note.tags.map((tag) => (
-                <span
-                  class="tag-pill"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          )}
-        </a>
-      ))}
-    </div>
-
-    <!-- View 3: Grouped -->
-    <div class="view-panel view-grouped" id="view-grouped" role="region" aria-label="Grouped view" style="display:none;">
-      {(['dev', 'nutrition', 'training'] as Topic[]).map((topicKey) => {
-        const topicNotes = groupedByTopic[topicKey];
-        if (topicNotes.length === 0) return null;
-        const topicTitle = topicKey === 'dev' ? 'Development' : topicKey.charAt(0).toUpperCase() + topicKey.slice(1);
-        return (
-          <div class="topic-group is-open" data-topic-group={topicKey}>
-            <button
-              type="button"
-              class="topic-group-header"
-              aria-expanded="true"
-            >
-              <div class="topic-group-header-left">
-                <svg class="topic-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <polyline points="9 18 15 12 9 6"></polyline>
-                </svg>
-                <span class="topic-group-title">{topicTitle}</span>
-              </div>
-              <span class="topic-group-count">{topicNotes.length} {topicNotes.length === 1 ? 'note' : 'notes'}</span>
-            </button>
-            <div class="topic-group-content">
-              {topicNotes.map((note) => (
-                <a href={note.url} class="note-list-row" data-id={note.id}>
-                  <div class="note-list-header">
-                    <h3 class="note-list-title">{note.title}</h3>
-                    <span class="note-list-date">{note.formattedDate}</span>
-                  </div>
-                  {note.description && (
-                    <p class="note-list-desc">{note.description}</p>
-                  )}
-                  {note.tags && note.tags.length > 0 && (
-                    <div class="tag-list">
-                      {note.tags.map((tag) => (
-                        <span
-                          class="tag-pill"
-                        >
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </a>
-              ))}
-            </div>
-          </div>
-        );
-      })}
-    </div>
-
-    <!-- View 4: Timeline -->
+    <!-- View 2: Timeline -->
     <div class="view-panel view-timeline" id="view-timeline" role="region" aria-label="Timeline view" style="display:none;">
       {timelineGroups.map((group) => (
         <div class="timeline-month-block" data-month-year={group.monthYear}>
@@ -305,7 +195,6 @@ const serializedNotes = JSON.stringify(notes);
     const allNotes = JSON.parse(rawData.textContent || '[]');
 
     // DOM Elements
-    const pageContainer = document.getElementById('page-container');
     const searchInput = document.getElementById('notes-search-input');
     const searchClearBtn = document.getElementById('search-clear-btn');
     const searchKbd = document.getElementById('search-kbd');
@@ -317,8 +206,6 @@ const serializedNotes = JSON.stringify(notes);
 
     const viewPanels = {
       list: document.getElementById('view-list'),
-      cards: document.getElementById('view-cards'),
-      grouped: document.getElementById('view-grouped'),
       timeline: document.getElementById('view-timeline'),
     };
 
@@ -335,11 +222,11 @@ const serializedNotes = JSON.stringify(notes);
       const view = params.get('view');
 
       if (q) state.query = q;
-      if (view && ['list', 'cards', 'grouped', 'timeline'].includes(view)) {
+      if (view && ['list', 'timeline'].includes(view)) {
         state.view = view;
       } else {
         const savedView = localStorage.getItem('notes_view_preference');
-        if (savedView && ['list', 'cards', 'grouped', 'timeline'].includes(savedView)) {
+        if (savedView && ['list', 'timeline'].includes(savedView)) {
           state.view = savedView;
         }
       }
@@ -378,11 +265,6 @@ const serializedNotes = JSON.stringify(notes);
         btn.setAttribute('aria-pressed', isActive ? 'true' : 'false');
       });
 
-      // Page container wide mode for cards view
-      if (pageContainer) {
-        pageContainer.classList.toggle('view-cards-active', state.view === 'cards');
-      }
-
       // Clear search button
       if (clearFiltersBtn) {
         clearFiltersBtn.hidden = !state.query;
@@ -396,7 +278,7 @@ const serializedNotes = JSON.stringify(notes);
 
       const terms = q.split(/\s+/).filter(Boolean);
       return allNotes.filter((note) => {
-        const haystack = `${note.title} ${note.rawTitle} ${note.description} ${note.tags.join(' ')}`.toLowerCase();
+        const haystack = `${note.title} ${note.rawTitle} ${note.description} ${note.tags.join(' ')} ${note.body || ''}`.toLowerCase();
         for (const term of terms) {
           if (!haystack.includes(term)) return false;
         }
@@ -436,11 +318,7 @@ const serializedNotes = JSON.stringify(notes);
       // Show only active view panel
       Object.entries(viewPanels).forEach(([name, panel]) => {
         if (!panel) return;
-        if (name === state.view) {
-          panel.style.display = name === 'cards' ? 'grid' : 'flex';
-        } else {
-          panel.style.display = 'none';
-        }
+        panel.style.display = name === state.view ? 'flex' : 'none';
       });
 
       // 1. List View
@@ -461,79 +339,7 @@ const serializedNotes = JSON.stringify(notes);
           .join('');
       }
 
-      // 2. Cards View
-      if (viewPanels.cards && state.view === 'cards') {
-        viewPanels.cards.innerHTML = filtered
-          .map(
-            (note) => `
-            <a href="${note.url}" class="note-card" data-id="${note.id}">
-              <div class="note-card-top">
-                <span class="note-card-date">${note.formattedDate}</span>
-              </div>
-              <h3 class="note-card-title">${note.title}</h3>
-              ${note.description ? `<p class="note-card-desc">${note.description}</p>` : ''}
-              <div class="note-card-footer">
-                ${renderTagsHTML(note.tags)}
-              </div>
-            </a>
-          `
-          )
-          .join('');
-      }
-
-      // 3. Grouped View
-      if (viewPanels.grouped && state.view === 'grouped') {
-        const topics = ['dev', 'nutrition', 'training'];
-        viewPanels.grouped.innerHTML = topics
-          .map((topicKey) => {
-            const groupNotes = filtered.filter((n) => n.topic === topicKey);
-            if (groupNotes.length === 0) return '';
-            const topicTitle = topicKey === 'dev' ? 'Development' : topicKey.charAt(0).toUpperCase() + topicKey.slice(1);
-
-            return `
-              <div class="topic-group is-open" data-topic-group="${topicKey}">
-                <button type="button" class="topic-group-header" aria-expanded="true">
-                  <div class="topic-group-header-left">
-                    <svg class="topic-group-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
-                    <span class="topic-group-title">${topicTitle}</span>
-                  </div>
-                  <span class="topic-group-count">${groupNotes.length} ${groupNotes.length === 1 ? 'note' : 'notes'}</span>
-                </button>
-                <div class="topic-group-content">
-                  ${groupNotes
-                    .map(
-                      (note) => `
-                    <a href="${note.url}" class="note-list-row" data-id="${note.id}">
-                      <div class="note-list-header">
-                        <h3 class="note-list-title">${note.title}</h3>
-                        <span class="note-list-date">${note.formattedDate}</span>
-                      </div>
-                      ${note.description ? `<p class="note-list-desc">${note.description}</p>` : ''}
-                      ${renderTagsHTML(note.tags)}
-                    </a>
-                  `
-                    )
-                    .join('')}
-                </div>
-              </div>
-            `;
-          })
-          .join('');
-
-        viewPanels.grouped.querySelectorAll('.topic-group-header').forEach((hdr) => {
-          hdr.addEventListener('click', () => {
-            const group = hdr.closest('.topic-group');
-            if (group) {
-              const isOpen = group.classList.toggle('is-open');
-              hdr.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-            }
-          });
-        });
-      }
-
-      // 4. Timeline View
+      // 2. Timeline View
       if (viewPanels.timeline && state.view === 'timeline') {
         const monthGroups = new Map();
         filtered.forEach((note) => {
@@ -607,17 +413,6 @@ const serializedNotes = JSON.stringify(notes);
         if (v && v !== state.view) {
           state.view = v;
           render();
-        }
-      });
-    });
-
-    // Grouped collapsible headers initial bind
-    document.querySelectorAll('.topic-group-header').forEach((hdr) => {
-      hdr.addEventListener('click', () => {
-        const group = hdr.closest('.topic-group');
-        if (group) {
-          const isOpen = group.classList.toggle('is-open');
-          hdr.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         }
       });
     });

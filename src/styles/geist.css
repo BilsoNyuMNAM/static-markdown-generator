@@ -82,11 +82,6 @@ a {
   width: 100%;
   margin-inline: auto;                  /* centers horizontally */
   padding-inline: clamp(16px, 4vw, 32px); /* responsive side gutters */
-  transition: max-width 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.page-container.view-cards-active {
-  max-width: 1000px;                    /* ~1000px for cards per spec */
 }
 
 .page-container.article-container-wrapper {
@@ -193,10 +188,11 @@ a {
 /* ==========================================================================
    Borderless Clean Note / Project List (Responsive + Bold Headings)
    ========================================================================== */
+/* Hairline-ruled rows: shared by /project and /tags/[tag] */
 .notes-list {
   display: flex;
   flex-direction: column;
-  gap: clamp(28px, 4vw, 36px);
+  gap: 0;
   padding-top: clamp(32px, 5vw, 48px);
   padding-bottom: 64px;
 }
@@ -205,6 +201,18 @@ a {
   display: block;
   text-decoration: none;
   cursor: pointer;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--hairline);
+  transition: border-color 0.15s ease;
+}
+
+.note-item:hover,
+.note-item:focus-visible {
+  border-bottom-color: var(--ink);
+}
+
+.note-item:last-child {
+  border-bottom: none;
 }
 
 .note-header-row {
@@ -229,12 +237,15 @@ a {
 }
 
 .note-meta {
-  font-size: 0.9rem;
-  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-weight: 500;
   color: var(--mute);
   white-space: nowrap;
   flex-shrink: 0;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-variant-numeric: tabular-nums;
 }
 
 .note-description {
@@ -318,60 +329,100 @@ a {
   color: var(--mute);
 }
 
-/* ── /tags — all tags index page ───────────────────────────────────────── */
-.tags-index {
-  padding-top: clamp(28px, 4vw, 44px);
-  padding-bottom: 80px;
+/* ── Shared page masthead (Swiss / International Style) ────────────────── */
+.masthead {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  padding: clamp(28px, 4vw, 44px) 0 14px;
+  border-bottom: 2px solid var(--ink);
 }
 
-.tags-index-header {
-  margin-bottom: clamp(28px, 4vw, 40px);
-}
-
-.tags-index-title {
-  font-size: clamp(1.6rem, 3vw + 1rem, 2.2rem);
+.masthead-title {
+  font-size: clamp(2rem, 4vw + 1rem, 3.1rem);
   font-weight: 700;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.035em;
+  line-height: 1;
   color: var(--ink);
-  margin-bottom: 6px;
+  margin-bottom: 10px;
 }
 
-.tags-index-sub {
-  font-size: 0.95rem;
+.masthead-sub {
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--mute);
 }
 
+.masthead-total {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--mute);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  padding-bottom: 2px;
+}
+
+/* ── /tags — all tags index page ───────────────────────────────────────── */
+.tags-index {
+  padding-top: 0;
+  padding-bottom: 80px;
+}
+
+/* Hairline table: rows and columns ruled, no boxes or fills */
 .tags-grid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0 clamp(24px, 3vw, 56px);
 }
 
 .tag-card {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 16px;
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  background: var(--canvas-elevated);
+  display: grid;
+  grid-template-columns: 2.2ch 1fr auto;
+  align-items: baseline;
+  gap: 14px;
+  padding: 15px 0;
+  border-bottom: 1px solid var(--hairline);
   text-decoration: none;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
-.tag-card:hover {
-  border-color: var(--hairline-hover);
-  background: var(--canvas-hover);
+.tag-card:hover,
+.tag-card:focus-visible {
+  border-bottom-color: var(--ink);
+}
+
+.tag-card-index {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--faint);
+  transition: color 0.15s ease;
 }
 
 .tag-card-name {
-  font-size: 0.92rem;
+  font-size: 1rem;
   font-weight: 600;
+  letter-spacing: -0.01em;
   color: var(--ink);
+  transition: color 0.15s ease;
+}
+
+.tag-card:hover .tag-card-name,
+.tag-card:hover .tag-card-index,
+.tag-card:focus-visible .tag-card-name {
+  color: var(--link);
 }
 
 .tag-card-count {
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
   color: var(--mute);
 }
 
@@ -780,7 +831,7 @@ a {
 
 /* Layout wrapper */
 .notes-explorer {
-  padding-top: 16px;
+  padding-top: 20px;
   padding-bottom: 80px;
 }
 
@@ -811,22 +862,22 @@ a {
 
 .search-input {
   width: 100%;
-  height: 38px;
-  padding: 0 38px 0 36px;
-  background: var(--canvas-elevated);
+  height: 40px;
+  padding: 0 38px 0 34px;
+  background: transparent;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   color: var(--ink);
   font-family: var(--font-sans);
   font-size: 0.9rem;
   outline: none;
-  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+  transition: border-color 0.15s ease;
 }
 
 .search-input:focus {
-  border-color: var(--link);
-  background: var(--canvas);
-  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+  border-color: var(--ink);
+  background: transparent;
+  box-shadow: none;
 }
 
 .search-input::placeholder {
@@ -844,9 +895,9 @@ a {
   font-size: 0.72rem;
   font-family: var(--font-mono);
   color: var(--mute);
-  background: var(--canvas);
+  background: transparent;
   border: 1px solid var(--hairline);
-  border-radius: 4px;
+  border-radius: 0;
   pointer-events: none;
   line-height: 1;
 }
@@ -874,28 +925,31 @@ a {
   background: var(--canvas-hover);
 }
 
-/* Notion-style View Switcher */
+/* View Switcher — square, hairline, inverted active state */
 .view-switcher {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
 }
 
 .view-switcher-label {
-  font-size: 0.8rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   color: var(--mute);
   font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .view-btn-group {
   display: inline-flex;
   align-items: center;
-  background: var(--canvas-elevated);
+  background: transparent;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  padding: 2px;
-  gap: 2px;
+  border-radius: 0;
+  padding: 0;
+  gap: 0;
 }
 
 .view-btn {
@@ -903,17 +957,22 @@ a {
   align-items: center;
   gap: 6px;
   height: 32px;
-  padding: 0 10px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  padding: 0 11px;
+  border: none;
+  border-left: 1px solid var(--hairline);
+  border-radius: 0;
   background: transparent;
   color: var(--mute);
   font-family: var(--font-sans);
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 500;
   cursor: pointer;
-  transition: all 0.15s ease;
+  transition: color 0.15s ease, background 0.15s ease;
   user-select: none;
+}
+
+.view-btn-group .view-btn:first-child {
+  border-left: none;
 }
 
 .view-btn svg {
@@ -930,11 +989,11 @@ a {
 
 .view-btn.active,
 .view-btn[aria-pressed="true"] {
-  background: var(--canvas);
-  color: var(--ink);
+  background: var(--ink);
+  color: var(--canvas);
   font-weight: 600;
-  border-color: var(--hairline-hover);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  border-color: var(--ink);
+  box-shadow: none;
 }
 
 /* ── Status Bar: Results Count + Clear Search ──────────────────────────── */
@@ -947,8 +1006,12 @@ a {
 }
 
 .results-count {
-  font-size: 0.82rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
   color: var(--mute);
+  font-variant-numeric: tabular-nums;
 }
 
 .clear-filters-btn {
@@ -979,7 +1042,7 @@ a {
 .view-list {
   display: flex;
   flex-direction: column;
-  gap: clamp(24px, 3.5vw, 32px);
+  gap: 0;
 }
 
 .note-list-row {
@@ -987,9 +1050,14 @@ a {
   text-decoration: none;
   color: inherit;
   cursor: pointer;
-  padding-bottom: clamp(20px, 3vw, 24px);
+  padding: 16px 0;
   border-bottom: 1px solid var(--hairline);
-  transition: opacity 0.15s ease;
+  transition: border-color 0.15s ease;
+}
+
+.note-list-row:hover,
+.note-list-row:focus-visible {
+  border-bottom-color: var(--ink);
 }
 
 .note-list-row:last-child {
@@ -1018,179 +1086,27 @@ a {
 }
 
 .note-list-date {
-  font-size: 0.88rem;
-  font-weight: 400;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  font-weight: 500;
   color: var(--mute);
   white-space: nowrap;
   flex-shrink: 0;
-  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
 }
 
 .note-list-desc {
-  font-size: 0.94rem;
+  font-size: 0.92rem;
   color: var(--body);
   line-height: 1.6;
   margin-top: 5px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   text-transform: none;
 }
 
 /* ==========================================================================
-   VIEW 2: CARDS VIEW (Responsive Grid)
-   ========================================================================== */
-.view-cards {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-}
-
-.note-card {
-  display: flex;
-  flex-direction: column;
-  padding: 18px;
-  background: var(--canvas-elevated);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  text-decoration: none;
-  color: inherit;
-  transition: border-color 0.15s ease, background 0.15s ease, transform 0.15s ease;
-}
-
-.note-card:hover {
-  background: var(--canvas-hover);
-  border-color: var(--hairline-hover);
-  transform: translateY(-1px);
-}
-
-.note-card-top {
-  display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
-.note-card-date {
-  font-size: 0.78rem;
-  color: var(--mute);
-  font-variant-numeric: tabular-nums;
-}
-
-.note-card-title {
-  font-size: 1.02rem;
-  font-weight: 600;
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-  color: var(--ink);
-  margin-bottom: 8px;
-  text-transform: none;
-  transition: color 0.15s ease;
-}
-
-.note-card:hover .note-card-title {
-  color: var(--link);
-}
-
-.note-card-desc {
-  font-size: 0.875rem;
-  color: var(--body);
-  line-height: 1.5;
-  margin-bottom: 12px;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-  text-transform: none;
-}
-
-.note-card-footer {
-  margin-top: auto;
-  padding-top: 6px;
-}
-
-/* ==========================================================================
-   VIEW 3: GROUPED VIEW (Collapsible Topic Headings)
-   ========================================================================== */
-.view-grouped {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-}
-
-.topic-group {
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-  background: var(--canvas-elevated);
-}
-
-.topic-group-header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  background: var(--canvas-elevated);
-  border: none;
-  border-bottom: 1px solid transparent;
-  color: var(--ink);
-  font-family: var(--font-sans);
-  cursor: pointer;
-  text-align: left;
-  transition: background-color 0.12s ease;
-}
-
-.topic-group-header:hover {
-  background: var(--canvas-hover);
-}
-
-.topic-group.is-open .topic-group-header {
-  border-bottom-color: var(--hairline);
-}
-
-.topic-group-header-left {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.topic-group-chevron {
-  width: 14px;
-  height: 14px;
-  stroke: var(--mute);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
-  transform: rotate(0deg);
-}
-
-.topic-group.is-open .topic-group-chevron {
-  transform: rotate(90deg);
-}
-
-.topic-group-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--ink);
-  letter-spacing: -0.01em;
-}
-
-.topic-group-count {
-  font-size: 0.82rem;
-  color: var(--mute);
-  font-variant-numeric: tabular-nums;
-}
-
-.topic-group-content {
-  display: none;
-  padding: 12px 18px 20px;
-  gap: 20px;
-}
-
-.topic-group.is-open .topic-group-content {
-  display: flex;
-  flex-direction: column;
-}
-
-/* ==========================================================================
-   VIEW 4: TIMELINE VIEW (Month & Year groups with vertical line)
+   VIEW 2: TIMELINE VIEW (Month & Year groups with vertical line)
    ========================================================================== */
 .view-timeline {
   display: flex;
@@ -1220,10 +1136,11 @@ a {
 }
 
 .timeline-month-title {
-  font-size: 0.86rem;
-  font-weight: 700;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.12em;
   color: var(--mute);
 }
 
@@ -1234,7 +1151,7 @@ a {
   margin-left: 3.5px;
   border-left: 1px solid var(--hairline);
   padding-left: 18px;
-  gap: 14px;
+  gap: 0;
 }
 
 .timeline-item {
@@ -1242,17 +1159,18 @@ a {
   display: block;
   text-decoration: none;
   color: inherit;
-  padding: 12px 16px;
-  background: var(--canvas-elevated);
-  border: 1px solid var(--hairline);
-  border-radius: var(--radius-md);
-  transition: background 0.12s ease, border-color 0.12s ease, transform 0.12s ease;
+  padding: 12px 0;
+  background: transparent;
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
+  transition: border-color 0.12s ease;
 }
 
-.timeline-item:hover {
-  background: var(--canvas-hover);
-  border-color: var(--hairline-hover);
-  transform: translateX(2px);
+.timeline-item:hover,
+.timeline-item:focus-visible {
+  background: transparent;
+  border-bottom-color: var(--ink);
+  transform: none;
 }
 
 .timeline-node-dot {
@@ -1267,11 +1185,14 @@ a {
 }
 
 .timeline-date {
-  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--mute);
   margin-bottom: 4px;
   display: block;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .timeline-title {
@@ -1292,9 +1213,9 @@ a {
 .notes-empty-state {
   text-align: center;
   padding: 56px 20px;
-  background: var(--canvas-elevated);
+  background: transparent;
   border: 1px dashed var(--hairline);
-  border-radius: var(--radius-md);
+  border-radius: 0;
   margin-top: 12px;
 }
 
@@ -1304,8 +1225,8 @@ a {
   justify-content: center;
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  background: var(--canvas);
+  border-radius: 0;
+  background: transparent;
   border: 1px solid var(--hairline);
   color: var(--mute);
   margin-bottom: 12px;
@@ -1323,31 +1244,27 @@ a {
 }
 
 .empty-state-btn {
-  font-family: var(--font-sans);
-  font-size: 0.85rem;
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
   font-weight: 500;
-  color: var(--link);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
   background: none;
   border: 1px solid var(--hairline);
-  border-radius: var(--radius-sm);
-  padding: 6px 14px;
+  border-radius: 0;
+  padding: 8px 16px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 
 .empty-state-btn:hover {
-  background: var(--canvas-hover);
-  border-color: var(--hairline-hover);
-  color: var(--ink);
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--canvas);
 }
 
 /* ── Responsive Mobile Rules ────────────────────────────────────────────── */
-@media (max-width: 960px) {
-  .view-cards {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
 @media (max-width: 680px) {
   .explorer-top-bar {
     flex-direction: column;
@@ -1363,7 +1280,7 @@ a {
   .view-btn-group {
     flex: 1;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .view-btn {
@@ -1377,10 +1294,6 @@ a {
 
   .view-btn svg {
     margin: 0;
-  }
-
-  .view-cards {
-    grid-template-columns: 1fr;
   }
 
   .note-list-header {

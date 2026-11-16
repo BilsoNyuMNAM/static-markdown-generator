@@ -2,9 +2,9 @@
 import Layout from '../layouts/Layout.astro';
 import NotesExplorer from '../components/NotesExplorer.astro';
 import { getCollection } from 'astro:content';
-import { cleanTitle, resolveTopic, resolveDate, type NoteItem } from '../utils/notes';
+import { cleanTitle, resolveTopic, resolveDate, isProject, type NoteItem } from '../utils/notes';
 
-const allDocs = await getCollection('docs');
+const allDocs = (await getCollection('docs')).filter((d) => !isProject(d));
 
 const notes: NoteItem[] = allDocs.map((doc) => {
   const rawTitle = doc.data.title || 'Untitled Note';
@@ -23,6 +23,8 @@ const notes: NoteItem[] = allDocs.map((doc) => {
     rawTitle,
     title,
     description,
+    // shortcut: inlines every note body (~150KB now); switch to a Pagefind index if content passes a few MB
+    body: doc.body ?? '',
     topic,
     tags: (doc.data.tags || []).map((t: string) => t.toLowerCase().trim()),
     date: dateInfo.dateStr,
@@ -40,5 +42,12 @@ notes.sort((a, b) => b.timestamp - a.timestamp);
 ---
 
 <Layout title="Bilson's Blog — Notes" activeTab="notes">
+  <div class="masthead">
+    <div>
+      <h1 class="masthead-title">Notes</h1>
+      <p class="masthead-sub">Everything I've written down</p>
+    </div>
+    <span class="masthead-total">{notes.length}&nbsp;notes</span>
+  </div>
   <NotesExplorer notes={notes} />
 </Layout>

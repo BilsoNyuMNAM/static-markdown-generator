@@ -1,0 +1,30 @@
+---
+import Layout from '../../layouts/Layout.astro';
+import NoteArticle from '../../components/NoteArticle.astro';
+import { getCollection } from 'astro:content';
+import { isProject } from '../../utils/notes';
+
+export async function getStaticPaths() {
+  const projects = (await getCollection('docs')).filter((d) => isProject(d));
+  return projects.map((note) => ({
+    params: { slug: note.id },
+    props: { note, allNotes: projects },
+  }));
+}
+
+const { note, allNotes } = Astro.props;
+---
+
+<Layout
+  title={`${note.data.title} — Bilson's Blog`}
+  description={note.data.description}
+  activeTab="project"
+>
+  <NoteArticle
+    note={note}
+    allNotes={allNotes}
+    basePath="/project"
+    backHref="/project"
+    backLabel="All Projects"
+  />
+</Layout>

@@ -1,9 +1,10 @@
 ---
 import Layout from '../../layouts/Layout.astro';
 import { getCollection } from 'astro:content';
+import { isProject } from '../../utils/notes';
 
 export async function getStaticPaths() {
-  const allDocs = await getCollection('docs');
+  const allDocs = (await getCollection('docs')).filter((d) => !isProject(d));
 
   const tagMap = new Map<string, string>();
   for (const doc of allDocs) {
